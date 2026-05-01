@@ -1,0 +1,26 @@
+{
+  "/auth": {
+    "target": "http://localhost",
+    "secure": false
+  },
+  "/users": {
+    "target": "http://localhost",
+    "secure": false
+  },
+  "/transactions": {
+    "target": "http://localhost",
+    "secure": false
+  },
+  "/accounts": {
+    "target": "http://localhost",
+    "secure": false
+  },
+  "/categories": {
+    "target": "http://localhost",
+    "secure": false
+  },
+  "/finance-groups": {
+    "target": "http://localhost",
+    "secure": false
+  }
+}
