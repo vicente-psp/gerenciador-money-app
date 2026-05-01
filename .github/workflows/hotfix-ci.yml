@@ -19,13 +19,12 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
+        working-directory: ./frontend
         run: npm install --legacy-peer-deps
 
       - name: Build
+        working-directory: ./frontend
         run: npm run build
-
-      # - name: Run tests
-      #   run: npm test
 
   create-pr:
     needs: build-and-test
@@ -43,7 +42,7 @@ jobs:
         run: |
           echo "Checking if PR already exists..."
 
-          if gh pr list --head "${{ github.ref_name }}" --base develop --json number | grep -q '"number"'; then
+          if gh pr list --head "${{ github.ref_name }}" --base main --json number | grep -q '"number"'; then
             echo "PR already exists"
             exit 0
           fi
@@ -51,10 +50,9 @@ jobs:
           echo "Creating PR..."
 
           gh pr create \
-            --base develop \
+            --base main \
             --head "${{ github.ref_name }}" \
-            --title "Auto PR: ${{ github.ref_name }} → develop" \
-            --body "PR criado automaticamente após sucesso no CI" \
-            --label "hotfix"
+            --title "Hotfix PR: ${{ github.ref_name }} → main" \
+            --body "PR de hotfix criado automaticamente após sucesso no CI"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

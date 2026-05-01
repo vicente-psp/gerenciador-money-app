@@ -26,10 +26,6 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
-      # - name: Run tests
-      #   working-directory: ./frontend
-      #   run: npm test
-
   create-pr:
     needs: build-and-test
     runs-on: ubuntu-latest
@@ -41,17 +37,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: Set PR label
-        id: label
-        run: |
-          BRANCH="${{ github.ref_name }}"
-
-          if [[ "$BRANCH" == feature/* ]]; then
-            echo "label=feature" >> $GITHUB_OUTPUT
-          else
-            echo "label=chore" >> $GITHUB_OUTPUT
-          fi
 
       - name: Create PR via GitHub CLI
         run: |
@@ -68,7 +53,6 @@ jobs:
             --base develop \
             --head "${{ github.ref_name }}" \
             --title "Auto PR: ${{ github.ref_name }} → develop" \
-            --body "PR criado automaticamente após sucesso no CI" \
-            --label "${{ steps.label.outputs.label }}"
+            --body "PR criado automaticamente após sucesso no CI"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

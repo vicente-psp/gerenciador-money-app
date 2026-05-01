@@ -26,10 +26,6 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
-      # - name: Run tests
-      #   working-directory: ./frontend
-      #   run: npm test
-
   create-pr:
     needs: build-and-test
     runs-on: ubuntu-latest
@@ -53,18 +49,16 @@ jobs:
               --base develop \
               --head "${{ github.ref_name }}" \
               --title "Auto PR: ${{ github.ref_name }} → develop" \
-              --body "PR criado automaticamente após sucesso no CI" \
-              --label "bug" | grep -oE '[0-9]+$')
+              --body "PR criado automaticamente após sucesso no CI" | grep -oE '[0-9]+$')
           else
             echo "PR already exists: $PR_NUMBER"
           fi
 
           if [ -n "$PR_NUMBER" ]; then
             echo "Merging PR #$PR_NUMBER..."
-            # AUTOMATION: Merge PR automatically (REMOVE THIS AFTER TESTING)
             gh pr merge $PR_NUMBER --merge || echo "Merge failed"
           else
             echo "No PR found to merge"
           fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
