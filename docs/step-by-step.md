@@ -4,24 +4,29 @@ Este documento detalha o plano de execução para o desenvolvimento do ecossiste
 
 ---
 
-## 🏗️ Fase 1: Infraestrutura e Automação (Concluído/Em progresso)
+## 🏗️ Fase 1: Infraestrutura e Backend (Concluído/Externo)
 - Setup do Terraform (VPC, RDS, EC2).
 - Configuração do Keycloak Server.
-- Pipeline de CI/CD para o Backend.
+- Backend NestJS rodando via Docker.
 
-## 🎨 Fase 2: Frontend Angular - Core & Auth
-- [ ] Inicialização do projeto Angular 19 (Standalone).
-- [ ] Setup do TailwindCSS e biblioteca de componentes.
-- [ ] Integração com `keycloak-angular` (Login/Logout/Tokens).
-- [ ] Implementação do `WorkspaceService` para gestão do contexto de grupo financeiro.
+## 🎨 Fase 2: Frontend Angular - Core & Auth (Concluído)
+- [x] Inicialização do projeto Angular 19 (Standalone).
+- [x] Setup do TailwindCSS v4.
+- [x] Instalação e configuração do **PrimeNG v19**.
+- [x] Integração com `keycloak-angular` e `keycloak-js`.
 
-## 🔗 Fase 3: Integração & Funcionalidades Financeiras
+- [x] Implementação do `KeycloakAuthService`.
+- [x] Configuração de Interceptors e Environments.
+- [x] Definição de Modelos de Dados (Interfaces).
+
+## 🔗 Fase 3: Integração & Funcionalidades Financeiras (Próximo passo)
+- [ ] Implementação de Serviços para comunicação com Backend Docker.
 - [ ] Dashboard: Resumo de saldo e últimos lançamentos.
 - [ ] Gestão de Contas e Categorias (CRUDs).
 - [ ] Transações: Inclusão, edição e filtros por Workspace.
-- [ ] Importação de categorias em lote (Bulk).
 
 ## 🚀 Fase 4: Deploy & Polimento
-- [ ] Deploy do Frontend (S3/CloudFront ou Nginx na EC2).
+- [ ] Provisionamento de Infra via Terraform (S3 Bucket + CloudFront).
+- [ ] Pipeline de Deploy do Frontend para S3.
 - [ ] Ajustes de UX/UI (Feedback visual de carregamento e erros).
 - [ ] Testes de ponta a ponta (E2E).

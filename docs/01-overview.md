@@ -5,15 +5,17 @@ Este projeto consiste em um ecossistema financeiro composto por um backend em Ne
 ## 🎯 Objetivo
 - Criar uma plataforma financeira funcional (MVP).
 - Interface intuitiva e responsiva em Angular.
-- Baixo custo (rodando em instâncias EC2 otimizadas).
+- Deploy otimizado via **AWS S3 + CloudFront**.
 - Segurança robusta via Keycloak (RBAC e Isolamento de dados).
 
 ## 🧱 Stack
-- **Backend:** NestJS (TypeScript)
 - **Frontend:** Angular 19+ (Signals, Standalone Components)
-- **Banco de Dados:** PostgreSQL (RDS)
+- **Estilização:** PrimeNG v19 + TailwindCSS 4
 - **Autenticação:** Keycloak (OIDC)
-- **Infraestrutura:** Docker, Nginx, Terraform (AWS)
+- **Backend:** API REST (acessível via Docker/Nginx)
+- **Infraestrutura:** Terraform (AWS S3, CloudFront)
+
 
 ## ⚠️ Importante
-O foco inicial é a integração do Frontend com o Backend através do Keycloak, garantindo que o multi-tenancy (Workspaces) funcione perfeitamente desde o login.
+O foco inicial é a integração do Frontend com a API através do Keycloak, garantindo que o multi-tenancy (Workspaces) funcione perfeitamente desde o login.
+
