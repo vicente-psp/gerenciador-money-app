@@ -1,7 +1,7 @@
 import { Injectable, signal, computed } from '@angular/core';
-import { Transaction } from '../../models/transaction.model';
-import { Category } from '../../models/category.model';
-import { Account } from '../../models/account.model';
+import { Transaction } from '../models/transaction.model';
+import { Category } from '../models/category.model';
+import { Account } from '../models/account.model';
 
 @Injectable({
   providedIn: 'root'
