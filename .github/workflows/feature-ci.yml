@@ -53,6 +53,7 @@ jobs:
             --base develop \
             --head "${{ github.ref_name }}" \
             --title "Auto PR: ${{ github.ref_name }} → develop" \
-            --body "PR criado automaticamente após sucesso no CI"
+            --body "PR criado automaticamente após sucesso no CI" \
+            --label "feature"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

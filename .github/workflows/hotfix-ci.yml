@@ -53,6 +53,7 @@ jobs:
             --base main \
             --head "${{ github.ref_name }}" \
             --title "Hotfix PR: ${{ github.ref_name }} → main" \
-            --body "PR de hotfix criado automaticamente após sucesso no CI"
+            --body "PR de hotfix criado automaticamente após sucesso no CI" \
+            --label "hotfix"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

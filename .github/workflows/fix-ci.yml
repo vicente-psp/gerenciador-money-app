@@ -49,7 +49,8 @@ jobs:
               --base develop \
               --head "${{ github.ref_name }}" \
               --title "Auto PR: ${{ github.ref_name }} → develop" \
-              --body "PR criado automaticamente após sucesso no CI" | grep -oE '[0-9]+$')
+              --body "PR criado automaticamente após sucesso no CI" \
+              --label "bug" | grep -oE '[0-9]+$')
           else
             echo "PR already exists: $PR_NUMBER"
           fi
