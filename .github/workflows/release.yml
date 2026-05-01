@@ -1,0 +1,81 @@
+name: Create Release Tag
+
+on:
+  workflow_run:
+    workflows: ["Deploy Gerenciador Money (MVP)"]
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Fetch tags
+        run: git fetch --tags
+
+      - name: Get latest tag
+        id: tag
+        run: |
+          TAG=$(git tag --sort=-v:refname | head -n 1)
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Get commit messages
+        run: |
+          if [ -z "${{ steps.tag.outputs.tag }}" ]; then
+            RANGE=""
+          else
+            RANGE="${{ steps.tag.outputs.tag }}..HEAD"
+          fi
+          git log $RANGE --pretty=format:"%s" > commits.txt
+
+      - name: Determine version bump
+        id: bump
+        run: |
+          BUMP="patch"
+
+          if grep -q "BREAKING CHANGE" commits.txt || grep -q "!" commits.txt; then
+            BUMP="major"
+          elif grep -q "^feat" commits.txt; then
+            BUMP="minor"
+          fi
+
+          echo "bump=$BUMP" >> $GITHUB_OUTPUT
+
+      - name: Calculate next version
+        id: version
+        run: |
+          TAG=${{ steps.tag.outputs.tag }}
+
+          if [ -z "$TAG" ]; then
+            echo "new_version=v1.0.0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          VERSION=${TAG#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          case "${{ steps.bump.outputs.bump }}" in
+            major)
+              MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
+            minor)
+              MINOR=$((MINOR+1)); PATCH=0 ;;
+            patch)
+              PATCH=$((PATCH+1)) ;;
+          esac
+
+          echo "new_version=v$MAJOR.$MINOR.$PATCH" >> $GITHUB_OUTPUT
+
+      - name: Create tag
+        run: |
+          git tag ${{ steps.version.outputs.new_version }}
+          git push origin ${{ steps.version.outputs.new_version }}

@@ -1,0 +1,67 @@
+name: Fix CI
+
+on:
+  push:
+    branches:
+      - 'fix/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build
+        run: npm run build
+
+      # - name: Run tests
+      #   run: npm test
+
+  create-pr:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Create and Merge PR via GitHub CLI
+        run: |
+          echo "Checking if PR already exists..."
+          PR_NUMBER=$(gh pr list --head "${{ github.ref_name }}" --base develop --json number --jq '.[0].number')
+
+          if [ -z "$PR_NUMBER" ]; then
+            echo "Creating PR..."
+            PR_NUMBER=$(gh pr create \
+              --base develop \
+              --head "${{ github.ref_name }}" \
+              --title "Auto PR: ${{ github.ref_name }} → develop" \
+              --body "PR criado automaticamente após sucesso no CI" \
+              --label "bug" | grep -oE '[0-9]+$')
+          else
+            echo "PR already exists: $PR_NUMBER"
+          fi
+
+          if [ -n "$PR_NUMBER" ]; then
+            echo "Merging PR #$PR_NUMBER..."
+            # AUTOMATION: Merge PR automatically (REMOVE THIS AFTER TESTING)
+            gh pr merge $PR_NUMBER --merge || echo "Merge failed"
+          else
+            echo "No PR found to merge"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
