@@ -1,0 +1,60 @@
+name: Hotfix CI
+
+on:
+  push:
+    branches:
+      - 'hotfix/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build
+        run: npm run build
+
+      # - name: Run tests
+      #   run: npm test
+
+  create-pr:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Create PR via GitHub CLI
+        run: |
+          echo "Checking if PR already exists..."
+
+          if gh pr list --head "${{ github.ref_name }}" --base develop --json number | grep -q '"number"'; then
+            echo "PR already exists"
+            exit 0
+          fi
+
+          echo "Creating PR..."
+
+          gh pr create \
+            --base develop \
+            --head "${{ github.ref_name }}" \
+            --title "Auto PR: ${{ github.ref_name }} → develop" \
+            --body "PR criado automaticamente após sucesso no CI" \
+            --label "hotfix"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

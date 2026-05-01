@@ -9,6 +9,8 @@ import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { MessageModule } from 'primeng/message';
 
 registerLocaleData(localePt);
 
@@ -20,22 +22,25 @@ registerLocaleData(localePt);
     CardModule, 
     ButtonModule, 
     TableModule, 
-    TagModule
+    TagModule,
+    ProgressSpinnerModule,
+    MessageModule
   ],
   providers: [{ provide: LOCALE_ID, useValue: 'pt-BR' }],
   template: `
-    <div class="min-h-screen bg-slate-50 p-4 md:p-8">
+    <div class="dashboard-container">
       <!-- Header -->
-      <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <header class="dashboard-header">
         <div>
-          <h1 class="text-3xl font-bold text-slate-900">Dashboard Financeiro</h1>
-          <p class="text-slate-500">Bem-vindo de volta ao seu controle de gastos.</p>
+          <h1 class="dashboard-title">Dashboard Financeiro</h1>
+          <p class="dashboard-subtitle">Bem-vindo de volta ao seu controle de gastos.</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="header-actions">
+          <p-button icon="pi pi-refresh" [rounded]="true" [text]="true" (onClick)="finance.refreshData()" [loading]="finance.loading()" />
           @if (auth.isLoggedIn) {
-            <div class="flex flex-col text-right hidden md:block">
-              <span class="text-sm font-semibold text-slate-700">Usuário Autenticado</span>
-              <span class="text-xs text-slate-500">Workspace Padrão</span>
+            <div class="user-info">
+              <span class="user-name">Usuário Autenticado</span>
+              <span class="user-workspace">Workspace Padrão</span>
             </div>
             <p-button label="Sair" icon="pi pi-sign-out" severity="danger" [outlined]="true" (onClick)="auth.logout()" />
           } @else {
@@ -44,42 +49,48 @@ registerLocaleData(localePt);
         </div>
       </header>
 
+      @if (finance.error()) {
+        <div class="error-container">
+          <p-message severity="error" [text]="finance.error()!" styleClass="w-full" />
+        </div>
+      }
+
       <!-- Resumo de Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <p-card header="Saldo Total" styleClass="border-t-4 border-blue-500 shadow-sm">
-          <p class="text-3xl font-bold text-slate-900">
+      <div class="summary-cards">
+        <p-card header="Saldo Total" styleClass="card-balance shadow-sm">
+          <p class="amount-text balance-color">
             {{ finance.totalBalance() | currency:'BRL' }}
           </p>
-          <p class="text-sm text-slate-500 mt-2">Soma de todas as suas contas</p>
+          <p class="amount-subtitle">Soma de todas as suas contas</p>
         </p-card>
 
-        <p-card header="Receitas (Mês)" styleClass="border-t-4 border-green-500 shadow-sm">
-          <p class="text-3xl font-bold text-green-600">
+        <p-card header="Receitas (Mês)" styleClass="card-income shadow-sm">
+          <p class="amount-text income-color">
             {{ finance.monthlyIncome() | currency:'BRL' }}
           </p>
-          <div class="flex items-center gap-1 mt-2 text-green-600">
-            <i class="pi pi-arrow-up text-xs"></i>
-            <span class="text-sm">Entradas registradas</span>
+          <div class="amount-trend income-color">
+            <i class="pi pi-arrow-up"></i>
+            <span>Entradas registradas</span>
           </div>
         </p-card>
 
-        <p-card header="Despesas (Mês)" styleClass="border-t-4 border-red-500 shadow-sm">
-          <p class="text-3xl font-bold text-red-600">
+        <p-card header="Despesas (Mês)" styleClass="card-expense shadow-sm">
+          <p class="amount-text expense-color">
             {{ finance.monthlyExpense() | currency:'BRL' }}
           </p>
-          <div class="flex items-center gap-1 mt-2 text-red-600">
-            <i class="pi pi-arrow-down text-xs"></i>
-            <span class="text-sm">Saídas registradas</span>
+          <div class="amount-trend expense-color">
+            <i class="pi pi-arrow-down"></i>
+            <span>Saídas registradas</span>
           </div>
         </p-card>
       </div>
 
       <!-- Main Content Grid -->
-      <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div class="main-grid">
         <!-- Últimas Transações -->
-        <div class="xl:col-span-2">
+        <div class="transactions-container">
           <p-card header="Últimas Transações" styleClass="shadow-sm">
-            <p-table [value]="finance.transactions()" [rows]="5" responsiveLayout="scroll">
+            <p-table [value]="finance.transactions()" [rows]="5" responsiveLayout="scroll" [loading]="finance.loading()">
               <ng-template pTemplate="header">
                 <tr>
                   <th>Descrição</th>
@@ -97,36 +108,52 @@ registerLocaleData(localePt);
                            [value]="transaction.type === 'INCOME' ? 'Receita' : 'Despesa'" 
                            [rounded]="true" />
                   </td>
-                  <td class="text-right font-bold" [ngClass]="transaction.type === 'INCOME' ? 'text-green-600' : 'text-red-600'">
-                    {{ transaction.amount | currency:'BRL' }}
+                  <td class="text-right font-bold">
+                    <span [style.color]="transaction.type === 'INCOME' ? '#16a34a' : '#dc2626'">
+                      {{ transaction.amount | currency:'BRL' }}
+                    </span>
                   </td>
                 </tr>
               </ng-template>
+              <ng-template pTemplate="emptymessage">
+                <tr>
+                  <td colspan="4" class="empty-text">Nenhuma transação encontrada.</td>
+                </tr>
+              </ng-template>
             </p-table>
-            <div class="mt-4 flex justify-end">
-              <p-button label="Ver Todas" variant="text" size="small" icon="pi pi-chevron-right" iconPos="right" />
+            <div class="table-footer">
+              <p-button label="Ver Todas" [text]="true" size="small" icon="pi pi-chevron-right" iconPos="right" />
             </div>
           </p-card>
         </div>
 
         <!-- Contas -->
-        <div>
+        <div class="accounts-container">
           <p-card header="Minhas Contas" styleClass="shadow-sm">
-            <div class="flex flex-col gap-4">
-              @for (account of finance.accounts(); track account.id) {
-                <div class="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 transition-colors">
-                  <div class="flex items-center gap-3">
-                    <div class="w-2 h-8 rounded-full" [style.background-color]="account.color"></div>
-                    <div>
-                      <p class="font-semibold text-slate-800">{{ account.name }}</p>
-                      <p class="text-xs text-slate-500 uppercase">{{ account.type }}</p>
-                    </div>
-                  </div>
-                  <p class="font-bold text-slate-900">{{ account.balance | currency:'BRL' }}</p>
+            <div class="accounts-list">
+              @if (finance.loading() && finance.accounts().length === 0) {
+                <div class="loading-spinner">
+                  <p-progressSpinner styleClass="w-8 h-8" strokeWidth="4" />
                 </div>
               }
+              @for (account of finance.accounts(); track account.id) {
+                <div class="account-item">
+                  <div class="account-info">
+                    <div class="account-indicator" [style.backgroundColor]="account.color"></div>
+                    <div>
+                      <p class="account-name">{{ account.name }}</p>
+                      <p class="account-type">{{ account.type }}</p>
+                    </div>
+                  </div>
+                  <p class="account-balance">{{ account.balance | currency:'BRL' }}</p>
+                </div>
+              } @empty {
+                @if (!finance.loading()) {
+                  <p class="empty-text">Nenhuma conta cadastrada.</p>
+                }
+              }
             </div>
-            <div class="mt-6">
+            <div class="account-actions">
               <p-button label="Nova Conta" icon="pi pi-plus" styleClass="w-full" severity="secondary" [outlined]="true" />
             </div>
           </p-card>
@@ -135,7 +162,162 @@ registerLocaleData(localePt);
     </div>
   `,
   styles: `
+    .dashboard-container {
+      background-color: #f8fafc;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      gap: 1rem;
+    }
+    .dashboard-title {
+      font-size: 1.875rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0;
+    }
+    .dashboard-subtitle {
+      color: #64748b;
+      margin: 0.25rem 0 0 0;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      text-align: right;
+    }
+    .user-name {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #334155;
+    }
+    .user-workspace {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+    .error-container {
+      margin-bottom: 1.5rem;
+    }
+    .summary-cards {
+      display: flex;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+    .amount-text {
+      font-size: 1.875rem;
+      font-weight: 700;
+      margin: 0;
+    }
+    .amount-subtitle {
+      font-size: 0.875rem;
+      color: #64748b;
+      margin-top: 0.5rem;
+    }
+    .amount-trend {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      margin-top: 0.5rem;
+    }
+    .amount-trend i {
+      font-size: 0.75rem;
+    }
+    .balance-color { color: #0f172a; }
+    .income-color { color: #16a34a; }
+    .expense-color { color: #dc2626; }
+
+    .card-balance { flex: 1; min-width: 250px; border-top: 4px solid #3b82f6; }
+    .card-income { flex: 1; min-width: 250px; border-top: 4px solid #22c55e; }
+    .card-expense { flex: 1; min-width: 250px; border-top: 4px solid #ef4444; }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+    .transactions-container {
+      grid-column: span 2;
+    }
+    .text-right { text-align: right; }
+    .font-medium { font-weight: 500; }
+    .font-bold { font-weight: 700; }
+    .empty-text {
+      text-align: center;
+      padding: 1rem;
+      color: #64748b;
+    }
+    .table-footer {
+      margin-top: 1rem;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .accounts-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .account-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+      transition: background-color 0.2s;
+    }
+    .account-item:hover {
+      background-color: #f8fafc;
+    }
+    .account-info {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .account-indicator {
+      width: 0.5rem;
+      height: 2rem;
+      border-radius: 1rem;
+    }
+    .account-name {
+      font-weight: 600;
+      color: #1e293b;
+      margin: 0;
+    }
+    .account-type {
+      font-size: 0.75rem;
+      color: #64748b;
+      text-transform: uppercase;
+      margin: 0;
+    }
+    .account-balance {
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0;
+    }
+    .account-actions {
+      margin-top: 1.5rem;
+    }
+    .loading-spinner {
+      display: flex;
+      justify-content: center;
+      padding: 1rem;
+    }
+
     :host ::ng-deep {
+      .p-card {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
       .p-card-header {
         font-size: 1.1rem;
         font-weight: 600;
@@ -143,7 +325,14 @@ registerLocaleData(localePt);
       }
       .p-card-content {
         padding-top: 0;
+        flex-grow: 1;
       }
+    }
+
+    @media (max-width: 768px) {
+      .dashboard-container { padding: 1rem; }
+      .dashboard-header { flex-direction: column; align-items: flex-start; }
+      .transactions-container { grid-column: span 1; }
     }
   `
 })

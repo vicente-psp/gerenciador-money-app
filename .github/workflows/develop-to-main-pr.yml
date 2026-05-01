@@ -1,0 +1,30 @@
+name: Create PR to Main
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create and Merge Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          # Create PR
+          gh pr create \
+            --base main \
+            --head develop \
+            --title "Release: develop -> main" \
+            --body "Automated Pull Request to synchronize main with develop." || echo "PR already exists"
+          
+          # AUTOMATION: Merge PR automatically (REMOVE THIS AFTER TESTING)
+          gh pr merge --merge --head develop || echo "Merge failed or no PR to merge"
