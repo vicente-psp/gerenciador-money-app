@@ -24,6 +24,7 @@ export class FinanceService {
   // Computed signals para o Dashboard
   transactions = computed(() => this._transactions());
   accounts = computed(() => this._accounts());
+  categories = computed(() => this._categories());
   
   totalBalance = computed(() => 
     this._accounts().reduce((acc, curr) => acc + curr.balance, 0)
@@ -49,18 +50,19 @@ export class FinanceService {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const [accounts, transactions] = await Promise.all([
+      const [accounts, transactions, categories] = await Promise.all([
         firstValueFrom(this.http.get<Account[]>(`${this.apiUrl}/accounts`)),
-        firstValueFrom(this.http.get<Transaction[]>(`${this.apiUrl}/transactions`))
+        firstValueFrom(this.http.get<Transaction[]>(`${this.apiUrl}/transactions`)),
+        firstValueFrom(this.http.get<Category[]>(`${this.apiUrl}/categories`))
       ]);
       
       this._accounts.set(accounts);
       this._transactions.set(transactions);
+      this._categories.set(categories);
     } catch (err) {
       console.error('Erro ao carregar dados financeiros:', err);
       this.error.set('Falha ao sincronizar dados com o servidor.');
       
-      // Fallback para manter o dashboard "vivo" em desenvolvimento se a API falhar
       if (!environment.production) {
         this.loadMockData();
       }
@@ -69,7 +71,26 @@ export class FinanceService {
     }
   }
 
+  async saveTransaction(transaction: Partial<Transaction>) {
+    this.loading.set(true);
+    try {
+      await firstValueFrom(this.http.post(`${this.apiUrl}/transactions`, transaction));
+      await this.refreshData();
+    } catch (err) {
+      console.error('Erro ao salvar transação:', err);
+      throw err;
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
   private loadMockData() {
+    const mockCategories: Category[] = [
+      { id: 'c1', name: 'Salário', type: 'INCOME', icon: 'pi pi-money-bill' },
+      { id: 'c2', name: 'Moradia', type: 'EXPENSE', icon: 'pi pi-home' },
+      { id: 'c3', name: 'Alimentação', type: 'EXPENSE', icon: 'pi pi-shopping-cart' }
+    ];
+
     const mockAccounts: Account[] = [
       { id: '1', name: 'Conta Corrente (Mock)', type: 'CHECKING', balance: 2500.50, color: '#22c55e' },
       { id: '2', name: 'Investimentos (Mock)', type: 'INVESTMENT', balance: 12000.00, color: '#3b82f6' }
@@ -83,5 +104,6 @@ export class FinanceService {
 
     this._accounts.set(mockAccounts);
     this._transactions.set(mockTransactions);
+    this._categories.set(mockCategories);
   }
 }
