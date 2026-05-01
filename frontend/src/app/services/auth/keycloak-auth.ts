@@ -28,6 +28,7 @@ export class KeycloakAuthService {
         // caso o Web Origin não esteja 100% mapeado no Keycloak.
         checkLoginIframe: false 
       });
+      console.log('keycloak =>', this.keycloak);
       return authenticated;
     } catch (error) {
       console.error('Falha ao inicializar Keycloak em:', environment.keycloak.url, error);
