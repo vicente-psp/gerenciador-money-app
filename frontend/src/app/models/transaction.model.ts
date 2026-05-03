@@ -12,4 +12,5 @@ export interface Transaction {
   accountId: string;
   account?: Account;
   notes?: string;
+  financeGroupId: string;
 }

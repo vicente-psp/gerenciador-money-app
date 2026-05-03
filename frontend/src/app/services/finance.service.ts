@@ -80,10 +80,6 @@ export class FinanceService {
     } catch (err) {
       console.error('Erro ao carregar dados financeiros:', err);
       this.error.set('Falha ao sincronizar dados com o servidor.');
-      
-      if (!environment.production) {
-        this.loadMockData();
-      }
     } finally {
       this.loading.set(false);
     }
