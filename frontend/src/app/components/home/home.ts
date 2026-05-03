@@ -1,5 +1,6 @@
-import { Component, inject, LOCALE_ID } from '@angular/core';
+import { Component, inject, LOCALE_ID, computed, effect } from '@angular/core';
 import { CommonModule, registerLocaleData } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import localePt from '@angular/common/locales/pt';
 import { KeycloakAuthService } from '../../services/auth/keycloak-auth';
 import { FinanceService } from '../../services/finance.service';
@@ -11,6 +12,13 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { MessageModule } from 'primeng/message';
+import { DialogModule } from 'primeng/dialog';
+import { InputTextModule } from 'primeng/inputtext';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { SelectModule } from 'primeng/select';
+import { DatePickerModule } from 'primeng/datepicker';
+import { SelectButtonModule } from 'primeng/selectbutton';
+import { ChartModule } from 'primeng/chart';
 
 registerLocaleData(localePt);
 
@@ -18,13 +26,21 @@ registerLocaleData(localePt);
   selector: 'app-home',
   standalone: true,
   imports: [
-    CommonModule, 
+    CommonModule,
+    FormsModule,
     CardModule, 
     ButtonModule, 
     TableModule, 
     TagModule,
     ProgressSpinnerModule,
-    MessageModule
+    MessageModule,
+    DialogModule,
+    InputTextModule,
+    InputNumberModule,
+    SelectModule,
+    DatePickerModule,
+    SelectButtonModule,
+    ChartModule
   ],
   providers: [{ provide: LOCALE_ID, useValue: 'pt-BR' }],
   template: `
@@ -36,16 +52,8 @@ registerLocaleData(localePt);
           <p class="dashboard-subtitle">Bem-vindo de volta ao seu controle de gastos.</p>
         </div>
         <div class="header-actions">
+          <p-button label="Nova Transação" icon="pi pi-plus" (onClick)="showTransactionDialog()" />
           <p-button icon="pi pi-refresh" [rounded]="true" [text]="true" (onClick)="finance.refreshData()" [loading]="finance.loading()" />
-          @if (auth.isLoggedIn) {
-            <div class="user-info">
-              <span class="user-name">Usuário Autenticado</span>
-              <span class="user-workspace">Workspace Padrão</span>
-            </div>
-            <p-button label="Sair" icon="pi pi-sign-out" severity="danger" [outlined]="true" (onClick)="auth.logout()" />
-          } @else {
-            <p-button label="Entrar" icon="pi pi-sign-in" severity="primary" (onClick)="auth.login()" />
-          }
         </div>
       </header>
 
@@ -87,44 +95,53 @@ registerLocaleData(localePt);
 
       <!-- Main Content Grid -->
       <div class="main-grid">
-        <!-- Últimas Transações -->
+        <!-- Gráfico e Transações -->
         <div class="transactions-container">
-          <p-card header="Últimas Transações" styleClass="shadow-sm">
-            <p-table [value]="finance.transactions()" [rows]="5" responsiveLayout="scroll" [loading]="finance.loading()">
-              <ng-template pTemplate="header">
-                <tr>
-                  <th>Descrição</th>
-                  <th>Data</th>
-                  <th>Tipo</th>
-                  <th class="text-right">Valor</th>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="body" let-transaction>
-                <tr>
-                  <td class="font-medium">{{ transaction.description }}</td>
-                  <td>{{ transaction.date | date:'shortDate':'':'pt-BR' }}</td>
-                  <td>
-                    <p-tag [severity]="transaction.type === 'INCOME' ? 'success' : 'danger'" 
-                           [value]="transaction.type === 'INCOME' ? 'Receita' : 'Despesa'" 
-                           [rounded]="true" />
-                  </td>
-                  <td class="text-right font-bold">
-                    <span [style.color]="transaction.type === 'INCOME' ? '#16a34a' : '#dc2626'">
-                      {{ transaction.amount | currency:'BRL' }}
-                    </span>
-                  </td>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="emptymessage">
-                <tr>
-                  <td colspan="4" class="empty-text">Nenhuma transação encontrada.</td>
-                </tr>
-              </ng-template>
-            </p-table>
-            <div class="table-footer">
-              <p-button label="Ver Todas" [text]="true" size="small" icon="pi pi-chevron-right" iconPos="right" />
-            </div>
-          </p-card>
+          <div class="grid-layout">
+            <p-card header="Gastos por Categoria" styleClass="shadow-sm mb-6">
+              @if (finance.transactions().length > 0) {
+                <p-chart type="doughnut" [data]="chartData()" [options]="chartOptions" height="250px" />
+              } @else {
+                <div class="flex items-center justify-center h-full text-gray-400 p-8">
+                  Sem dados para exibir o gráfico.
+                </div>
+              }
+            </p-card>
+
+            <p-card header="Últimas Transações" styleClass="shadow-sm">
+              <p-table [value]="latestTransactions()" [rows]="5" responsiveLayout="scroll" [loading]="finance.loading()">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th>Descrição</th>
+                    <th>Data</th>
+                    <th>Tipo</th>
+                    <th class="text-right">Valor</th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-transaction>
+                  <tr>
+                    <td class="font-medium">{{ transaction.description }}</td>
+                    <td>{{ transaction.date | date:'shortDate':'':'pt-BR' }}</td>
+                    <td>
+                      <p-tag [severity]="transaction.type === 'INCOME' ? 'success' : 'danger'" 
+                            [value]="transaction.type === 'INCOME' ? 'Receita' : 'Despesa'" 
+                            [rounded]="true" />
+                    </td>
+                    <td class="text-right font-bold">
+                      <span [style.color]="transaction.type === 'INCOME' ? '#16a34a' : '#dc2626'">
+                        {{ transaction.amount | currency:'BRL' }}
+                      </span>
+                    </td>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                  <tr>
+                    <td colspan="4" class="empty-text">Nenhuma transação encontrada.</td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </p-card>
+          </div>
         </div>
 
         <!-- Contas -->
@@ -153,13 +170,48 @@ registerLocaleData(localePt);
                 }
               }
             </div>
-            <div class="account-actions">
-              <p-button label="Nova Conta" icon="pi pi-plus" styleClass="w-full" severity="secondary" [outlined]="true" />
-            </div>
           </p-card>
         </div>
       </div>
     </div>
+
+    <!-- Dialog de Nova Transação -->
+    <p-dialog header="Nova Transação" [(visible)]="displayTransactionDialog" [modal]="true" [style]="{width: '450px'}">
+      <div class="form-container">
+        <div class="form-field">
+          <p-selectButton [options]="typeOptions" [(ngModel)]="newTransaction.type" optionLabel="label" optionValue="value" styleClass="w-full" />
+        </div>
+
+        <div class="form-field">
+          <label for="description">Descrição</label>
+          <input id="description" type="text" pInputText [(ngModel)]="newTransaction.description" class="w-full" />
+        </div>
+
+        <div class="form-field">
+          <label for="amount">Valor</label>
+          <p-inputNumber id="amount" [(ngModel)]="newTransaction.amount" mode="currency" currency="BRL" locale="pt-BR" styleClass="w-full" />
+        </div>
+
+        <div class="form-field">
+          <label for="date">Data</label>
+          <p-datepicker id="date" [(ngModel)]="newTransaction.date" dateFormat="dd/mm/yy" [showIcon]="true" styleClass="w-full" />
+        </div>
+
+        <div class="form-field">
+          <label for="account">Conta</label>
+          <p-select id="account" [options]="finance.accounts()" [(ngModel)]="newTransaction.accountId" optionLabel="name" optionValue="id" placeholder="Selecione a conta" styleClass="w-full" />
+        </div>
+
+        <div class="form-field">
+          <label for="category">Categoria</label>
+          <p-select id="category" [options]="finance.categories()" [(ngModel)]="newTransaction.categoryId" optionLabel="name" optionValue="id" placeholder="Selecione a categoria" styleClass="w-full" />
+        </div>
+      </div>
+      <ng-template pTemplate="footer">
+        <p-button label="Cancelar" icon="pi pi-times" [text]="true" (onClick)="displayTransactionDialog = false" />
+        <p-button label="Salvar" icon="pi pi-check" (onClick)="saveTransaction()" [loading]="finance.loading()" />
+      </ng-template>
+    </p-dialog>
   `,
   styles: `
     .dashboard-container {
@@ -188,20 +240,6 @@ registerLocaleData(localePt);
       display: flex;
       align-items: center;
       gap: 0.75rem;
-    }
-    .user-info {
-      display: flex;
-      flex-direction: column;
-      text-align: right;
-    }
-    .user-name {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: #334155;
-    }
-    .user-workspace {
-      font-size: 0.75rem;
-      color: #64748b;
     }
     .error-container {
       margin-bottom: 1.5rem;
@@ -255,11 +293,6 @@ registerLocaleData(localePt);
       padding: 1rem;
       color: #64748b;
     }
-    .table-footer {
-      margin-top: 1rem;
-      display: flex;
-      justify-content: flex-end;
-    }
     .accounts-list {
       display: flex;
       flex-direction: column;
@@ -303,14 +336,31 @@ registerLocaleData(localePt);
       color: #0f172a;
       margin: 0;
     }
-    .account-actions {
-      margin-top: 1.5rem;
-    }
     .loading-spinner {
       display: flex;
       justify-content: center;
       padding: 1rem;
     }
+
+    /* Form Styles */
+    .form-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      padding-top: 1rem;
+    }
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .form-field label {
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: #475569;
+    }
+    .w-full { width: 100%; }
+    .mb-6 { margin-bottom: 1.5rem; }
 
     :host ::ng-deep {
       .p-card {
@@ -327,6 +377,11 @@ registerLocaleData(localePt);
         padding-top: 0;
         flex-grow: 1;
       }
+      .p-selectbutton .p-button.p-highlight {
+        background: #3b82f6 !important;
+        border-color: #3b82f6 !important;
+        color: white !important;
+      }
     }
 
     @media (max-width: 768px) {
@@ -339,4 +394,90 @@ registerLocaleData(localePt);
 export class HomeComponent {
   auth = inject(KeycloakAuthService);
   finance = inject(FinanceService);
+
+  displayTransactionDialog = false;
+  
+  typeOptions = [
+    { label: 'Receita', value: 'INCOME' },
+    { label: 'Despesa', value: 'EXPENSE' }
+  ];
+
+  newTransaction: any = {
+    type: 'EXPENSE',
+    description: '',
+    amount: 0,
+    date: new Date(),
+    accountId: null,
+    categoryId: null
+  };
+
+  latestTransactions = computed(() => {
+    return [...this.finance.transactions()]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+  });
+
+  chartData = computed(() => {
+    const transactions = this.finance.transactions().filter(t => t.type === 'EXPENSE');
+    const categories = this.finance.categories();
+    
+    const totalsByCategory: { [key: string]: number } = {};
+    
+    transactions.forEach(t => {
+      const categoryName = categories.find(c => c.id === t.categoryId)?.name || 'Sem Categoria';
+      totalsByCategory[categoryName] = (totalsByCategory[categoryName] || 0) + t.amount;
+    });
+
+    return {
+      labels: Object.keys(totalsByCategory),
+      datasets: [
+        {
+          data: Object.values(totalsByCategory),
+          backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#64748b', '#a855f7'],
+          hoverBackgroundColor: ['#2563eb', '#16a34a', '#d97706', '#dc2626', '#475569', '#9333ea']
+        }
+      ]
+    };
+  });
+
+  chartOptions = {
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          usePointStyle: true,
+          color: '#475569'
+        }
+      }
+    },
+    cutout: '60%',
+    maintainAspectRatio: false
+  };
+
+  showTransactionDialog() {
+    this.newTransaction = {
+      type: 'EXPENSE',
+      description: '',
+      amount: 0,
+      date: new Date(),
+      accountId: this.finance.accounts()[0]?.id,
+      categoryId: null
+    };
+    this.displayTransactionDialog = true;
+  }
+
+  async saveTransaction() {
+    try {
+      const transactionToSave = {
+        ...this.newTransaction,
+        date: this.newTransaction.date instanceof Date 
+          ? this.newTransaction.date.toISOString() 
+          : new Date().toISOString()
+      };
+      await this.finance.saveTransaction(transactionToSave);
+      this.displayTransactionDialog = false;
+    } catch (err) {
+      // Erro tratado no service
+    }
+  }
 }

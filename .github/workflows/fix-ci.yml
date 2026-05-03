@@ -19,13 +19,12 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
+        working-directory: ./frontend
         run: npm install --legacy-peer-deps
 
       - name: Build
+        working-directory: ./frontend
         run: npm run build
-
-      # - name: Run tests
-      #   run: npm test
 
   create-pr:
     needs: build-and-test
@@ -58,10 +57,9 @@ jobs:
 
           if [ -n "$PR_NUMBER" ]; then
             echo "Merging PR #$PR_NUMBER..."
-            # AUTOMATION: Merge PR automatically (REMOVE THIS AFTER TESTING)
             gh pr merge $PR_NUMBER --merge || echo "Merge failed"
           else
             echo "No PR found to merge"
           fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
