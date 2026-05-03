@@ -19,6 +19,10 @@ export const routes: Routes = [
       { 
         path: 'categories', 
         loadComponent: () => import('./components/categories/category-list').then(m => m.CategoryListComponent) 
+      },
+      {
+        path: 'workspaces',
+        loadComponent: () => import('./components/workspaces/workspace-list').then(m => m.WorkspaceListComponent)
       }
     ]
   },

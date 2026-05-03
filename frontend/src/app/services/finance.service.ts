@@ -1,4 +1,4 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
+import { Injectable, signal, computed, inject, effect } from '@angular/core';
 import { Transaction } from '../models/transaction.model';
 import { Category } from '../models/category.model';
 import { Account } from '../models/account.model';
@@ -7,6 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { AccountService } from './account.service';
 import { CategoryService } from './category.service';
 import { TransactionService } from './transaction.service';
+import { WorkspaceService } from './workspace.service';
 
 @Injectable({
   providedIn: 'root'
@@ -15,6 +16,7 @@ export class FinanceService {
   private accountService = inject(AccountService);
   private categoryService = inject(CategoryService);
   private transactionService = inject(TransactionService);
+  private workspaceService = inject(WorkspaceService);
 
   // Signals para o estado
   private _transactions = signal<Transaction[]>([]);
@@ -46,17 +48,30 @@ export class FinanceService {
   );
 
   constructor() {
-    this.refreshData();
+    // Reage a mudanças no workspace ativo
+    effect(() => {
+      const workspace = this.workspaceService.activeWorkspace();
+      if (workspace) {
+        this.refreshData();
+      } else {
+        this._accounts.set([]);
+        this._transactions.set([]);
+        this._categories.set([]);
+      }
+    });
   }
 
   async refreshData() {
+    const workspaceId = this.workspaceService.activeWorkspace()?.id;
+    if (!workspaceId) return;
+
     this.loading.set(true);
     this.error.set(null);
     try {
       const [accounts, transactions, categories] = await Promise.all([
-        firstValueFrom(this.accountService.getAll()),
-        firstValueFrom(this.transactionService.getAll()),
-        firstValueFrom(this.categoryService.getAll())
+        firstValueFrom(this.accountService.getAll(workspaceId)),
+        firstValueFrom(this.transactionService.getAll({}, workspaceId)),
+        firstValueFrom(this.categoryService.getAll(workspaceId))
       ]);
       
       this._accounts.set(accounts);
@@ -75,9 +90,10 @@ export class FinanceService {
   }
 
   async saveTransaction(transaction: Partial<Transaction>) {
+    const workspaceId = this.workspaceService.activeWorkspace()?.id;
     this.loading.set(true);
     try {
-      await firstValueFrom(this.transactionService.create(transaction));
+      await firstValueFrom(this.transactionService.create(transaction, workspaceId));
       await this.refreshData();
     } catch (err) {
       console.error('Erro ao salvar transação:', err);
@@ -89,9 +105,9 @@ export class FinanceService {
 
   private loadMockData() {
     const mockCategories: Category[] = [
-      { id: 'c1', name: 'Salário', type: 'INCOME', icon: 'pi pi-money-bill' },
-      { id: 'c2', name: 'Moradia', type: 'EXPENSE', icon: 'pi pi-home' },
-      { id: 'c3', name: 'Alimentação', type: 'EXPENSE', icon: 'pi pi-shopping-cart' }
+      { id: 'c1', name: 'Salário', type: 'INCOME', icon: 'pi pi-money-bill', financeGroupId: 'w1' },
+      { id: 'c2', name: 'Moradia', type: 'EXPENSE', icon: 'pi pi-home', financeGroupId: 'w1' },
+      { id: 'c3', name: 'Alimentação', type: 'EXPENSE', icon: 'pi pi-shopping-cart', financeGroupId: 'w1' }
     ];
 
     const mockAccounts: Account[] = [
@@ -100,9 +116,9 @@ export class FinanceService {
     ];
 
     const mockTransactions: Transaction[] = [
-      { id: '1', description: 'Salário', amount: 5000, date: new Date().toISOString(), type: 'INCOME', categoryId: 'c1', accountId: '1' },
-      { id: '2', description: 'Aluguel', amount: 1500, date: new Date().toISOString(), type: 'EXPENSE', categoryId: 'c2', accountId: '1' },
-      { id: '3', description: 'Supermercado', amount: 450.20, date: new Date().toISOString(), type: 'EXPENSE', categoryId: 'c3', accountId: '1' }
+      { id: '1', description: 'Salário', amount: 5000, date: new Date().toISOString(), type: 'INCOME', categoryId: 'c1', accountId: '1', financeGroupId: 'w1' },
+      { id: '2', description: 'Aluguel', amount: 1500, date: new Date().toISOString(), type: 'EXPENSE', categoryId: 'c2', accountId: '1', financeGroupId: 'w1' },
+      { id: '3', description: 'Supermercado', amount: 450.20, date: new Date().toISOString(), type: 'EXPENSE', categoryId: 'c3', accountId: '1', financeGroupId: 'w1' }
     ];
 
     this._accounts.set(mockAccounts);
