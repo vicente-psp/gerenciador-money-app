@@ -1,17 +1,20 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { Transaction } from '../models/transaction.model';
 import { Category } from '../models/category.model';
 import { Account } from '../models/account.model';
 import { environment } from '../../environments/environment';
 import { firstValueFrom } from 'rxjs';
+import { AccountService } from './account.service';
+import { CategoryService } from './category.service';
+import { TransactionService } from './transaction.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class FinanceService {
-  private http = inject(HttpClient);
-  private apiUrl = environment.apiUrl;
+  private accountService = inject(AccountService);
+  private categoryService = inject(CategoryService);
+  private transactionService = inject(TransactionService);
 
   // Signals para o estado
   private _transactions = signal<Transaction[]>([]);
@@ -51,9 +54,9 @@ export class FinanceService {
     this.error.set(null);
     try {
       const [accounts, transactions, categories] = await Promise.all([
-        firstValueFrom(this.http.get<Account[]>(`${this.apiUrl}/accounts`)),
-        firstValueFrom(this.http.get<Transaction[]>(`${this.apiUrl}/transactions`)),
-        firstValueFrom(this.http.get<Category[]>(`${this.apiUrl}/categories`))
+        firstValueFrom(this.accountService.getAll()),
+        firstValueFrom(this.transactionService.getAll()),
+        firstValueFrom(this.categoryService.getAll())
       ]);
       
       this._accounts.set(accounts);
@@ -74,7 +77,7 @@ export class FinanceService {
   async saveTransaction(transaction: Partial<Transaction>) {
     this.loading.set(true);
     try {
-      await firstValueFrom(this.http.post(`${this.apiUrl}/transactions`, transaction));
+      await firstValueFrom(this.transactionService.create(transaction));
       await this.refreshData();
     } catch (err) {
       console.error('Erro ao salvar transação:', err);
