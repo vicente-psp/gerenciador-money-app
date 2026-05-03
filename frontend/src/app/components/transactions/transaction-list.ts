@@ -19,6 +19,7 @@ import { SelectButtonModule } from 'primeng/selectbutton';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
+import { DividerModule } from 'primeng/divider';
 
 @Component({
   selector: 'app-transaction-list',
@@ -37,7 +38,8 @@ import { MessageService, ConfirmationService } from 'primeng/api';
     DatePickerModule,
     SelectButtonModule,
     ToastModule,
-    ConfirmDialogModule
+    ConfirmDialogModule,
+    DividerModule
   ],
   providers: [MessageService, ConfirmationService],
   template: `
@@ -51,6 +53,31 @@ import { MessageService, ConfirmationService } from 'primeng/api';
           <p-button label="Nova Transação" icon="pi pi-plus" (onClick)="showDialog()" />
         </div>
       </header>
+
+      <!-- Filtros -->
+      <p-card styleClass="shadow-sm mb-6">
+        <div class="grid-filters">
+          <div class="filter-item">
+            <label class="filter-label">Período</label>
+            <p-datepicker [(ngModel)]="filters.dateRange" selectionMode="range" [showIcon]="true" placeholder="Selecione o período" styleClass="w-full" (onSelect)="loadTransactions()" />
+          </div>
+          <div class="filter-item">
+            <label class="filter-label">Tipo</label>
+            <p-select [options]="filterTypeOptions" [(ngModel)]="filters.type" optionLabel="label" optionValue="value" placeholder="Todos" styleClass="w-full" (onChange)="loadTransactions()" />
+          </div>
+          <div class="filter-item">
+            <label class="filter-label">Conta</label>
+            <p-select [options]="finance.accounts()" [(ngModel)]="filters.accountId" optionLabel="name" optionValue="id" placeholder="Todas" [showClear]="true" styleClass="w-full" (onChange)="loadTransactions()" />
+          </div>
+          <div class="filter-item">
+            <label class="filter-label">Categoria</label>
+            <p-select [options]="finance.categories()" [(ngModel)]="filters.categoryId" optionLabel="name" optionValue="id" placeholder="Todas" [showClear]="true" styleClass="w-full" (onChange)="loadTransactions()" />
+          </div>
+          <div class="filter-actions">
+            <p-button label="Limpar" icon="pi pi-filter-slash" [outlined]="true" severity="secondary" (onClick)="clearFilters()" />
+          </div>
+        </div>
+      </p-card>
 
       <p-card styleClass="shadow-sm">
         <p-table 
@@ -105,7 +132,7 @@ import { MessageService, ConfirmationService } from 'primeng/api';
           <ng-template pTemplate="emptymessage">
             <tr>
               <td colspan="7" class="text-center p-8 text-gray-500">
-                Nenhuma transação encontrada.
+                Nenhuma transação encontrada para os filtros aplicados.
               </td>
             </tr>
           </ng-template>
@@ -174,6 +201,23 @@ import { MessageService, ConfirmationService } from 'primeng/api';
       color: #64748b;
       margin: 0.25rem 0 0 0;
     }
+    .grid-filters {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      align-items: flex-end;
+    }
+    .filter-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .filter-label {
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: #475569;
+    }
+    .mb-6 { margin-bottom: 1.5rem; }
     .text-right { text-align: right; }
     .text-center { text-align: center; }
     .font-medium { font-weight: 500; }
@@ -187,6 +231,10 @@ import { MessageService, ConfirmationService } from 'primeng/api';
     .mt-2 { margin-top: 0.5rem; }
     .items-center { align-items: center; }
     .justify-center { justify-content: center; }
+
+    @media (max-width: 768px) {
+      .grid-filters { grid-template-columns: 1fr; }
+    }
   `
 })
 export class TransactionListComponent implements OnInit {
@@ -200,6 +248,19 @@ export class TransactionListComponent implements OnInit {
   saving = signal<boolean>(false);
   displayDialog = false;
   editMode = false;
+
+  filters = {
+    dateRange: null as Date[] | null,
+    type: null as string | null,
+    accountId: null as string | null,
+    categoryId: null as string | null
+  };
+
+  filterTypeOptions = [
+    { label: 'Todos', value: null },
+    { label: 'Receita', value: 'INCOME' },
+    { label: 'Despesa', value: 'EXPENSE' }
+  ];
 
   transaction: any = {
     type: 'EXPENSE',
@@ -221,8 +282,20 @@ export class TransactionListComponent implements OnInit {
 
   async loadTransactions() {
     this.loading.set(true);
+    
+    // Preparar parâmetros de filtro
+    const params: any = {};
+    if (this.filters.type) params.type = this.filters.type;
+    if (this.filters.accountId) params.accountId = this.filters.accountId;
+    if (this.filters.categoryId) params.categoryId = this.filters.categoryId;
+    
+    if (this.filters.dateRange && this.filters.dateRange[0] && this.filters.dateRange[1]) {
+      params.startDate = this.filters.dateRange[0].toISOString();
+      params.endDate = this.filters.dateRange[1].toISOString();
+    }
+
     try {
-      this.transactionService.getAll().subscribe({
+      this.transactionService.getAll(params).subscribe({
         next: (data) => this.transactions.set(data),
         error: (err) => {
           this.messageService.add({ severity: 'error', summary: 'Erro', detail: 'Falha ao carregar transações' });
@@ -233,6 +306,16 @@ export class TransactionListComponent implements OnInit {
     } catch (err) {
       this.loading.set(false);
     }
+  }
+
+  clearFilters() {
+    this.filters = {
+      dateRange: null,
+      type: null,
+      accountId: null,
+      categoryId: null
+    };
+    this.loadTransactions();
   }
 
   showDialog() {

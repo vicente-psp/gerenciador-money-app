@@ -1,4 +1,4 @@
-import { Component, inject, LOCALE_ID } from '@angular/core';
+import { Component, inject, LOCALE_ID, computed, effect } from '@angular/core';
 import { CommonModule, registerLocaleData } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import localePt from '@angular/common/locales/pt';
@@ -54,15 +54,6 @@ registerLocaleData(localePt);
         <div class="header-actions">
           <p-button label="Nova Transação" icon="pi pi-plus" (onClick)="showTransactionDialog()" />
           <p-button icon="pi pi-refresh" [rounded]="true" [text]="true" (onClick)="finance.refreshData()" [loading]="finance.loading()" />
-          @if (auth.isLoggedIn) {
-            <div class="user-info">
-              <span class="user-name">Usuário Autenticado</span>
-              <span class="user-workspace">Workspace Padrão</span>
-            </div>
-            <p-button label="Sair" icon="pi pi-sign-out" severity="danger" [outlined]="true" (onClick)="auth.logout()" />
-          } @else {
-            <p-button label="Entrar" icon="pi pi-sign-in" severity="primary" (onClick)="auth.login()" />
-          }
         </div>
       </header>
 
@@ -107,12 +98,18 @@ registerLocaleData(localePt);
         <!-- Gráfico e Transações -->
         <div class="transactions-container">
           <div class="grid-layout">
-            <p-card header="Distribuição por Categoria" styleClass="shadow-sm mb-6">
-              <p-chart type="doughnut" [data]="chartData" [options]="chartOptions" height="250px" />
+            <p-card header="Gastos por Categoria" styleClass="shadow-sm mb-6">
+              @if (finance.transactions().length > 0) {
+                <p-chart type="doughnut" [data]="chartData()" [options]="chartOptions" height="250px" />
+              } @else {
+                <div class="flex items-center justify-center h-full text-gray-400 p-8">
+                  Sem dados para exibir o gráfico.
+                </div>
+              }
             </p-card>
 
             <p-card header="Últimas Transações" styleClass="shadow-sm">
-              <p-table [value]="finance.transactions()" [rows]="5" responsiveLayout="scroll" [loading]="finance.loading()">
+              <p-table [value]="latestTransactions()" [rows]="5" responsiveLayout="scroll" [loading]="finance.loading()">
                 <ng-template pTemplate="header">
                   <tr>
                     <th>Descrição</th>
@@ -143,9 +140,6 @@ registerLocaleData(localePt);
                   </tr>
                 </ng-template>
               </p-table>
-              <div class="table-footer">
-                <p-button label="Ver Todas" [text]="true" size="small" icon="pi pi-chevron-right" iconPos="right" />
-              </div>
             </p-card>
           </div>
         </div>
@@ -175,9 +169,6 @@ registerLocaleData(localePt);
                   <p class="empty-text">Nenhuma conta cadastrada.</p>
                 }
               }
-            </div>
-            <div class="account-actions">
-              <p-button label="Nova Conta" icon="pi pi-plus" styleClass="w-full" severity="secondary" [outlined]="true" />
             </div>
           </p-card>
         </div>
@@ -250,20 +241,6 @@ registerLocaleData(localePt);
       align-items: center;
       gap: 0.75rem;
     }
-    .user-info {
-      display: flex;
-      flex-direction: column;
-      text-align: right;
-    }
-    .user-name {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: #334155;
-    }
-    .user-workspace {
-      font-size: 0.75rem;
-      color: #64748b;
-    }
     .error-container {
       margin-bottom: 1.5rem;
     }
@@ -316,11 +293,6 @@ registerLocaleData(localePt);
       padding: 1rem;
       color: #64748b;
     }
-    .table-footer {
-      margin-top: 1rem;
-      display: flex;
-      justify-content: flex-end;
-    }
     .accounts-list {
       display: flex;
       flex-direction: column;
@@ -363,9 +335,6 @@ registerLocaleData(localePt);
       font-weight: 700;
       color: #0f172a;
       margin: 0;
-    }
-    .account-actions {
-      margin-top: 1.5rem;
     }
     .loading-spinner {
       display: flex;
@@ -442,12 +411,48 @@ export class HomeComponent {
     categoryId: null
   };
 
-  chartData: any;
-  chartOptions: any;
+  latestTransactions = computed(() => {
+    return [...this.finance.transactions()]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+  });
 
-  constructor() {
-    this.updateChartData();
-  }
+  chartData = computed(() => {
+    const transactions = this.finance.transactions().filter(t => t.type === 'EXPENSE');
+    const categories = this.finance.categories();
+    
+    const totalsByCategory: { [key: string]: number } = {};
+    
+    transactions.forEach(t => {
+      const categoryName = categories.find(c => c.id === t.categoryId)?.name || 'Sem Categoria';
+      totalsByCategory[categoryName] = (totalsByCategory[categoryName] || 0) + t.amount;
+    });
+
+    return {
+      labels: Object.keys(totalsByCategory),
+      datasets: [
+        {
+          data: Object.values(totalsByCategory),
+          backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#64748b', '#a855f7'],
+          hoverBackgroundColor: ['#2563eb', '#16a34a', '#d97706', '#dc2626', '#475569', '#9333ea']
+        }
+      ]
+    };
+  });
+
+  chartOptions = {
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          usePointStyle: true,
+          color: '#475569'
+        }
+      }
+    },
+    cutout: '60%',
+    maintainAspectRatio: false
+  };
 
   showTransactionDialog() {
     this.newTransaction = {
@@ -471,35 +476,8 @@ export class HomeComponent {
       };
       await this.finance.saveTransaction(transactionToSave);
       this.displayTransactionDialog = false;
-      this.updateChartData();
     } catch (err) {
       // Erro tratado no service
     }
-  }
-
-  updateChartData() {
-    this.chartData = {
-      labels: ['Moradia', 'Alimentação', 'Lazer', 'Outros'],
-      datasets: [
-        {
-          data: [1500, 450, 200, 100],
-          backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#64748b'],
-          hoverBackgroundColor: ['#2563eb', '#16a34a', '#d97706', '#475569']
-        }
-      ]
-    };
-
-    this.chartOptions = {
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: {
-            usePointStyle: true,
-            color: '#475569'
-          }
-        }
-      },
-      cutout: '60%'
-    };
   }
 }
