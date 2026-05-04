@@ -107,8 +107,8 @@ export class FinanceService {
     ];
 
     const mockAccounts: Account[] = [
-      { id: '1', name: 'Conta Corrente (Mock)', type: 'CHECKING', balance: 2500.50, color: '#22c55e' },
-      { id: '2', name: 'Investimentos (Mock)', type: 'INVESTMENT', balance: 12000.00, color: '#3b82f6' }
+      { id: '1', name: 'Conta Corrente (Mock)', type: 'CHECKING', balance: 2500.50, color: '#22c55e', financeGroupId: 'w1' },
+      { id: '2', name: 'Investimentos (Mock)', type: 'INVESTMENT', balance: 12000.00, color: '#3b82f6', financeGroupId: 'w1' }
     ];
 
     const mockTransactions: Transaction[] = [
