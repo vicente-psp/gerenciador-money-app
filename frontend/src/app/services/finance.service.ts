@@ -1,12 +1,12 @@
-import { Injectable, signal, computed, inject } from '@angular/core';
-import { Transaction } from '../models/transaction.model';
-import { Category } from '../models/category.model';
-import { Account } from '../models/account.model';
-import { environment } from '../../environments/environment';
-import { firstValueFrom } from 'rxjs';
+import { Injectable, inject, signal, computed, effect } from '@angular/core';
 import { AccountService } from './account.service';
 import { CategoryService } from './category.service';
 import { TransactionService } from './transaction.service';
+import { Account } from '../models/account.model';
+import { Category } from '../models/category.model';
+import { Transaction } from '../models/transaction.model';
+import { FinanceGroupService } from './finance-group.service';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -15,98 +15,89 @@ export class FinanceService {
   private accountService = inject(AccountService);
   private categoryService = inject(CategoryService);
   private transactionService = inject(TransactionService);
+  private financeGroupService = inject(FinanceGroupService);
 
-  // Signals para o estado
-  private _transactions = signal<Transaction[]>([]);
+  // Estados Globais (Signals)
   private _accounts = signal<Account[]>([]);
   private _categories = signal<Category[]>([]);
-  
-  loading = signal<boolean>(false);
-  error = signal<string | null>(null);
+  private _transactions = signal<Transaction[]>([]);
+  private _loading = signal<boolean>(false);
+  private _error = signal<string | null>(null);
 
-  // Computed signals para o Dashboard
-  transactions = computed(() => this._transactions());
+  // Exposições Públicas
   accounts = computed(() => this._accounts());
   categories = computed(() => this._categories());
-  
+  transactions = computed(() => this._transactions());
+  loading = computed(() => this._loading());
+  error = computed(() => this._error());
+
+  // Métodos de Resumo (Derivados)
   totalBalance = computed(() => 
-    this._accounts().reduce((acc, curr) => acc + curr.balance, 0)
+    this._accounts().reduce((acc, account) => acc + account.balance, 0)
   );
 
   monthlyIncome = computed(() => 
     this._transactions()
-      .filter(t => t.type === 'INCOME')
-      .reduce((acc, curr) => acc + curr.amount, 0)
+      .filter(t => t.type === 'INCOME' && this.isCurrentMonth(new Date(t.date)))
+      .reduce((acc, t) => acc + t.amount, 0)
   );
 
   monthlyExpense = computed(() => 
     this._transactions()
-      .filter(t => t.type === 'EXPENSE')
-      .reduce((acc, curr) => acc + curr.amount, 0)
+      .filter(t => t.type === 'EXPENSE' && this.isCurrentMonth(new Date(t.date)))
+      .reduce((acc, t) => acc + t.amount, 0)
   );
 
   constructor() {
-    this.refreshData();
+    // Reage a mudanças no grupo financeiro ativo
+    effect(() => {
+      const group = this.financeGroupService.activeFinanceGroup();
+      if (group) {
+        this.refreshData();
+      }
+    });
   }
 
   async refreshData() {
-    this.loading.set(true);
-    this.error.set(null);
+    const groupId = this.financeGroupService.activeFinanceGroup()?.id;
+    if (!groupId) return;
+
+    this._loading.set(true);
+    this._error.set(null);
+
     try {
       const [accounts, transactions, categories] = await Promise.all([
-        firstValueFrom(this.accountService.getAll()),
-        firstValueFrom(this.transactionService.getAll()),
-        firstValueFrom(this.categoryService.getAll())
+        firstValueFrom(this.accountService.getAll(groupId)),
+        firstValueFrom(this.transactionService.getAll({}, groupId)),
+        firstValueFrom(this.categoryService.getAll(groupId))
       ]);
-      
+
       this._accounts.set(accounts);
       this._transactions.set(transactions);
       this._categories.set(categories);
     } catch (err) {
-      console.error('Erro ao carregar dados financeiros:', err);
-      this.error.set('Falha ao sincronizar dados com o servidor.');
-      
-      if (!environment.production) {
-        this.loadMockData();
-      }
+      this._error.set('Falha ao carregar dados financeiros.');
+      console.error(err);
     } finally {
-      this.loading.set(false);
+      this._loading.set(false);
     }
   }
 
-  async saveTransaction(transaction: Partial<Transaction>) {
-    this.loading.set(true);
+  async saveTransaction(transaction: any) {
+    const groupId = this.financeGroupService.activeFinanceGroup()?.id;
+    if (!groupId) throw new Error('Nenhum grupo financeiro selecionado');
+
     try {
-      await firstValueFrom(this.transactionService.create(transaction));
+      await firstValueFrom(this.transactionService.create(transaction, groupId));
       await this.refreshData();
     } catch (err) {
-      console.error('Erro ao salvar transação:', err);
+      this._error.set('Erro ao salvar transação.');
       throw err;
-    } finally {
-      this.loading.set(false);
     }
   }
 
-  private loadMockData() {
-    const mockCategories: Category[] = [
-      { id: 'c1', name: 'Salário', type: 'INCOME', icon: 'pi pi-money-bill' },
-      { id: 'c2', name: 'Moradia', type: 'EXPENSE', icon: 'pi pi-home' },
-      { id: 'c3', name: 'Alimentação', type: 'EXPENSE', icon: 'pi pi-shopping-cart' }
-    ];
-
-    const mockAccounts: Account[] = [
-      { id: '1', name: 'Conta Corrente (Mock)', type: 'CHECKING', balance: 2500.50, color: '#22c55e' },
-      { id: '2', name: 'Investimentos (Mock)', type: 'INVESTMENT', balance: 12000.00, color: '#3b82f6' }
-    ];
-
-    const mockTransactions: Transaction[] = [
-      { id: '1', description: 'Salário', amount: 5000, date: new Date().toISOString(), type: 'INCOME', categoryId: 'c1', accountId: '1' },
-      { id: '2', description: 'Aluguel', amount: 1500, date: new Date().toISOString(), type: 'EXPENSE', categoryId: 'c2', accountId: '1' },
-      { id: '3', description: 'Supermercado', amount: 450.20, date: new Date().toISOString(), type: 'EXPENSE', categoryId: 'c3', accountId: '1' }
-    ];
-
-    this._accounts.set(mockAccounts);
-    this._transactions.set(mockTransactions);
-    this._categories.set(mockCategories);
+  private isCurrentMonth(date: Date): boolean {
+    const now = new Date();
+    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
   }
 }

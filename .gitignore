@@ -1,0 +1,16 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+*.tfvars.json
+.terraform.lock.hcl
+
+# Node
+node_modules/
+dist/
+.angular/
+
+# OS
+.DS_Store
+Thumbs.db

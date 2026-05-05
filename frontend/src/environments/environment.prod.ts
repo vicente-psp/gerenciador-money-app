@@ -1,9 +1,9 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://api.gerenciadormoney.com', // Exemplo para prod
+  apiUrl: 'https://money.listagio.com', // Exemplo para prod
   keycloak: {
-    url: 'https://auth.gerenciadormoney.com',
-    realm: 'gerenciador-money',
-    clientId: 'gerenciador-money-front'
+    url: 'https://money.listagio.com/auth',
+    realm: 'financial-app',
+    clientId: 'backend'
   }
 };
