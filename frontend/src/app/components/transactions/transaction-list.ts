@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TransactionService } from '../../services/transaction.service';
 import { FinanceService } from '../../services/finance.service';
-import { WorkspaceService } from '../../services/workspace.service';
+import { FinanceGroupService } from '../../services/finance-group.service';
 import { Transaction } from '../../models/transaction.model';
 
 // PrimeNG
@@ -48,7 +48,7 @@ import { DividerModule } from 'primeng/divider';
       <header class="page-header">
         <div>
           <h1 class="page-title">Transações</h1>
-          <p class="page-subtitle">Gerencie suas entradas e saídas no workspace <strong>{{ workspaceService.activeWorkspace()?.name }}</strong>.</p>
+          <p class="page-subtitle">Gerencie suas entradas e saídas no grupo <strong>{{ financeGroupService.activeFinanceGroup()?.name }}</strong>.</p>
         </div>
         <div class="header-actions">
           <p-button label="Nova Transação" icon="pi pi-plus" (onClick)="showDialog()" />
@@ -241,7 +241,7 @@ import { DividerModule } from 'primeng/divider';
 export class TransactionListComponent implements OnInit {
   private transactionService = inject(TransactionService);
   finance = inject(FinanceService);
-  workspaceService = inject(WorkspaceService);
+  financeGroupService = inject(FinanceGroupService);
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
 
@@ -279,9 +279,9 @@ export class TransactionListComponent implements OnInit {
   ];
 
   constructor() {
-    // Recarrega transações se o workspace mudar enquanto a tela estiver aberta
+    // Recarrega transações se o grupo mudar enquanto a tela estiver aberta
     effect(() => {
-      if (this.workspaceService.activeWorkspace()) {
+      if (this.financeGroupService.activeFinanceGroup()) {
         this.loadTransactions();
       }
     });
@@ -292,8 +292,8 @@ export class TransactionListComponent implements OnInit {
   }
 
   async loadTransactions() {
-    const workspaceId = this.workspaceService.activeWorkspace()?.id;
-    if (!workspaceId) return;
+    const groupId = this.financeGroupService.activeFinanceGroup()?.id;
+    if (!groupId) return;
 
     this.loading.set(true);
     
@@ -309,7 +309,7 @@ export class TransactionListComponent implements OnInit {
     }
 
     try {
-      this.transactionService.getAll(params, workspaceId).subscribe({
+      this.transactionService.getAll(params, groupId).subscribe({
         next: (data) => this.transactions.set(data),
         error: (err) => {
           this.messageService.add({ severity: 'error', summary: 'Erro', detail: 'Falha ao carregar transações' });
@@ -356,13 +356,13 @@ export class TransactionListComponent implements OnInit {
 
   async saveTransaction() {
     this.saving.set(true);
-    const workspaceId = this.workspaceService.activeWorkspace()?.id;
+    const groupId = this.financeGroupService.activeFinanceGroup()?.id;
 
     try {
       const data = {
         ...this.transaction,
         date: this.transaction.date.toISOString(),
-        financeGroupId: workspaceId
+        financeGroupId: groupId
       };
 
       if (this.editMode) {
@@ -371,7 +371,7 @@ export class TransactionListComponent implements OnInit {
           error: (err) => this.handleError(err)
         });
       } else {
-        this.transactionService.create(data, workspaceId).subscribe({
+        this.transactionService.create(data, groupId).subscribe({
           next: () => this.handleSuccess('Transação criada'),
           error: (err) => this.handleError(err)
         });

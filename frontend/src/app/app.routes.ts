@@ -21,8 +21,8 @@ export const routes: Routes = [
         loadComponent: () => import('./components/categories/category-list').then(m => m.CategoryListComponent) 
       },
       {
-        path: 'workspaces',
-        loadComponent: () => import('./components/workspaces/workspace-list').then(m => m.WorkspaceListComponent)
+        path: 'finance-groups',
+        loadComponent: () => import('./components/finance-groups/finance-group-list').then(m => m.FinanceGroupListComponent)
       }
     ]
   },

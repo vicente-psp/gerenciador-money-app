@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { KeycloakAuthService } from '../services/auth/keycloak-auth';
-import { WorkspaceService } from '../services/workspace.service';
+import { FinanceGroupService } from '../services/finance-group.service';
 
 // PrimeNG
 import { ButtonModule } from 'primeng/button';
@@ -36,13 +36,13 @@ import { DividerModule } from 'primeng/divider';
           </div>
         </div>
 
-        <!-- Seletor de Workspace -->
+        <!-- Seletor de Grupo Financeiro -->
         <div class="workspace-selector px-4 py-3">
-          <label class="text-xs font-bold text-gray-400 uppercase mb-2 block nav-text">Workspace</label>
+          <label class="text-xs font-bold text-gray-400 uppercase mb-2 block nav-text">Grupo Ativo</label>
           <p-select 
-            [options]="workspaceService.workspaces()" 
-            [ngModel]="workspaceService.activeWorkspace()"
-            (ngModelChange)="workspaceService.setActiveWorkspace($event)"
+            [options]="financeGroupService.financeGroups()" 
+            [ngModel]="financeGroupService.activeFinanceGroup()"
+            (ngModelChange)="financeGroupService.setActiveFinanceGroup($event)"
             optionLabel="name" 
             placeholder="Selecione"
             styleClass="w-full workspace-dropdown"
@@ -80,6 +80,14 @@ import { DividerModule } from 'primeng/divider';
           <a routerLink="/categories" routerLinkActive="active" class="nav-item" pTooltip="Categorias" tooltipPosition="right">
             <i class="pi pi-tags"></i>
             <span class="nav-text">Categorias</span>
+          </a>
+          
+          <div class="nav-spacer my-2"></div>
+          <label class="text-[10px] font-bold text-gray-400 uppercase px-4 mb-1 nav-text">Configurações</label>
+          
+          <a routerLink="/finance-groups" routerLinkActive="active" class="nav-item" pTooltip="Grupos Financeiros" tooltipPosition="right">
+            <i class="pi pi-cog"></i>
+            <span class="nav-text">Gerenciar Grupos</span>
           </a>
         </nav>
 
@@ -150,7 +158,7 @@ import { DividerModule } from 'primeng/divider';
       padding: 1rem;
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: 0.25rem;
     }
 
     .nav-item {
@@ -202,6 +210,8 @@ import { DividerModule } from 'primeng/divider';
 
     .px-4 { padding-left: 1rem; padding-right: 1rem; }
     .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .my-2 { margin-top: 0.5rem; margin-bottom: 0.5rem; }
+    .mb-1 { margin-bottom: 0.25rem; }
     .mb-2 { margin-bottom: 0.5rem; }
     .mb-3 { margin-bottom: 0.75rem; }
     .my-0 { margin-top: 0; margin-bottom: 0; }
@@ -242,5 +252,5 @@ import { DividerModule } from 'primeng/divider';
 })
 export class LayoutComponent {
   auth = inject(KeycloakAuthService);
-  workspaceService = inject(WorkspaceService);
+  financeGroupService = inject(FinanceGroupService);
 }
