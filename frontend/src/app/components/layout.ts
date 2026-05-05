@@ -2,15 +2,29 @@ import { Component, inject } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { KeycloakAuthService } from '../services/auth/keycloak-auth';
+import { FinanceGroupService } from '../services/finance-group.service';
 
 // PrimeNG
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
+import { SelectModule } from 'primeng/select';
+import { FormsModule } from '@angular/forms';
+import { DividerModule } from 'primeng/divider';
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, ButtonModule, TooltipModule],
+  imports: [
+    CommonModule, 
+    RouterOutlet, 
+    RouterLink, 
+    RouterLinkActive, 
+    ButtonModule, 
+    TooltipModule, 
+    SelectModule, 
+    FormsModule,
+    DividerModule
+  ],
   template: `
     <div class="layout-wrapper">
       <!-- Sidebar -->
@@ -21,6 +35,34 @@ import { TooltipModule } from 'primeng/tooltip';
             <span class="logo-text">MoneyApp</span>
           </div>
         </div>
+
+        <!-- Seletor de Grupo Financeiro -->
+        <div class="workspace-selector px-4 py-3">
+          <label class="text-xs font-bold text-gray-400 uppercase mb-2 block nav-text">Grupo Ativo</label>
+          <p-select 
+            [options]="financeGroupService.financeGroups()" 
+            [ngModel]="financeGroupService.activeFinanceGroup()"
+            (ngModelChange)="financeGroupService.setActiveFinanceGroup($event)"
+            optionLabel="name" 
+            placeholder="Selecione"
+            styleClass="w-full workspace-dropdown"
+          >
+            <ng-template pTemplate="selectedItem" let-selectedOption>
+              <div class="flex items-center gap-2">
+                <i class="pi pi-briefcase text-blue-500"></i>
+                <span class="nav-text truncate">{{ selectedOption?.name }}</span>
+              </div>
+            </ng-template>
+            <ng-template pTemplate="item" let-item>
+              <div class="flex items-center gap-2">
+                <i class="pi pi-briefcase"></i>
+                <span>{{ item.name }}</span>
+              </div>
+            </ng-template>
+          </p-select>
+        </div>
+
+        <p-divider styleClass="my-0 mx-4" />
 
         <nav class="sidebar-nav">
           <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-item" pTooltip="Dashboard" tooltipPosition="right">
@@ -39,10 +81,22 @@ import { TooltipModule } from 'primeng/tooltip';
             <i class="pi pi-tags"></i>
             <span class="nav-text">Categorias</span>
           </a>
+          
+          <div class="nav-spacer my-2"></div>
+          <label class="text-[10px] font-bold text-gray-400 uppercase px-4 mb-1 nav-text">Configurações</label>
+          
+          <a routerLink="/finance-groups" routerLinkActive="active" class="nav-item" pTooltip="Grupos Financeiros" tooltipPosition="right">
+            <i class="pi pi-cog"></i>
+            <span class="nav-text">Gerenciar Grupos</span>
+          </a>
         </nav>
 
         <div class="sidebar-footer">
           @if (auth.isLoggedIn) {
+            <div class="user-profile mb-3 px-2 nav-text">
+              <span class="block text-sm font-semibold text-gray-700 truncate">Usuário Logado</span>
+              <span class="block text-xs text-gray-400">Plano Pro</span>
+            </div>
             <button class="nav-item logout-btn" (click)="auth.logout()" pTooltip="Sair" tooltipPosition="right">
               <i class="pi pi-sign-out"></i>
               <span class="nav-text">Sair</span>
@@ -84,7 +138,6 @@ import { TooltipModule } from 'primeng/tooltip';
 
     .sidebar-header {
       padding: 1.5rem;
-      border-bottom: 1px solid #f1f5f9;
     }
 
     .logo {
@@ -105,7 +158,7 @@ import { TooltipModule } from 'primeng/tooltip';
       padding: 1rem;
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: 0.25rem;
     }
 
     .nav-item {
@@ -155,11 +208,33 @@ import { TooltipModule } from 'primeng/tooltip';
       overflow-y: auto;
     }
 
+    .px-4 { padding-left: 1rem; padding-right: 1rem; }
+    .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .my-2 { margin-top: 0.5rem; margin-bottom: 0.5rem; }
+    .mb-1 { margin-bottom: 0.25rem; }
+    .mb-2 { margin-bottom: 0.5rem; }
+    .mb-3 { margin-bottom: 0.75rem; }
+    .my-0 { margin-top: 0; margin-bottom: 0; }
+    .mx-4 { margin-left: 1rem; margin-right: 1rem; }
+    .block { display: block; }
+    .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    :host ::ng-deep {
+      .workspace-dropdown {
+        border: 1px solid #e2e8f0 !important;
+        background: #f8fafc !important;
+        box-shadow: none !important;
+      }
+      .workspace-dropdown:hover {
+        border-color: #cbd5e1 !important;
+      }
+    }
+
     @media (max-width: 768px) {
       .sidebar {
         width: 70px;
       }
-      .nav-text, .logo-text {
+      .nav-text, .logo-text, .workspace-selector label {
         display: none;
       }
       .sidebar-header, .sidebar-nav, .sidebar-footer {
@@ -169,9 +244,13 @@ import { TooltipModule } from 'primeng/tooltip';
         justify-content: center;
         padding: 0.75rem;
       }
+      .workspace-selector {
+        padding: 0.75rem;
+      }
     }
   `
 })
 export class LayoutComponent {
   auth = inject(KeycloakAuthService);
+  financeGroupService = inject(FinanceGroupService);
 }

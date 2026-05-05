@@ -19,11 +19,12 @@ Este documento detalha o plano de execução para o desenvolvimento do ecossiste
 - [x] Configuração de Interceptors e Environments.
 - [x] Definição de Modelos de Dados (Interfaces).
 
-## 🔗 Fase 3: Integração & Funcionalidades Financeiras (Próximo passo)
-- [ ] Implementação de Serviços para comunicação com Backend Docker.
-- [ ] Dashboard: Resumo de saldo e últimos lançamentos.
-- [ ] Gestão de Contas e Categorias (CRUDs).
-- [ ] Transações: Inclusão, edição e filtros por Workspace.
+## 🔗 Fase 3: Integração & Funcionalidades Financeiras (Concluído)
+- [x] Implementação de Serviços para comunicação com Backend Docker.
+- [x] Dashboard: Resumo de saldo e últimos lançamentos reais.
+- [x] Gestão de Contas e Categorias (CRUDs).
+- [x] Transações: Inclusão, edição e filtros avançados.
+- [x] **Gestão de Workspaces (Finance Groups)** e Contexto Global.
 
 ## 🚀 Fase 4: Deploy & Polimento
 - [ ] Provisionamento de Infra via Terraform (S3 Bucket + CloudFront).

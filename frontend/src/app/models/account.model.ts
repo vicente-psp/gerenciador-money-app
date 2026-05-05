@@ -4,4 +4,5 @@ export interface Account {
   type: 'CHECKING' | 'SAVINGS' | 'INVESTMENT' | 'CASH';
   balance: number;
   color?: string;
+  financeGroupId: string;
 }

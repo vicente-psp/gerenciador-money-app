@@ -19,6 +19,10 @@ export const routes: Routes = [
       { 
         path: 'categories', 
         loadComponent: () => import('./components/categories/category-list').then(m => m.CategoryListComponent) 
+      },
+      {
+        path: 'finance-groups',
+        loadComponent: () => import('./components/finance-groups/finance-group-list').then(m => m.FinanceGroupListComponent)
       }
     ]
   },

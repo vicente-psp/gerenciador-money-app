@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Category } from '../models/category.model';
 import { environment } from '../../environments/environment';
@@ -11,16 +11,24 @@ export class CategoryService {
   private http = inject(HttpClient);
   private apiUrl = `${environment.apiUrl}/categories`;
 
-  getAll(): Observable<Category[]> {
-    return this.http.get<Category[]>(this.apiUrl);
+  getAll(financeGroupId?: string): Observable<Category[]> {
+    let params = new HttpParams();
+    if (financeGroupId) {
+      params = params.append('financeGroupId', financeGroupId);
+    }
+    return this.http.get<Category[]>(this.apiUrl, { params });
   }
 
   getById(id: string): Observable<Category> {
     return this.http.get<Category>(`${this.apiUrl}/${id}`);
   }
 
-  create(category: Partial<Category>): Observable<Category> {
-    return this.http.post<Category>(this.apiUrl, category);
+  create(category: Partial<Category>, financeGroupId?: string): Observable<Category> {
+    const body = { ...category };
+    if (financeGroupId) {
+      (body as any).financeGroupId = financeGroupId;
+    }
+    return this.http.post<Category>(this.apiUrl, body);
   }
 
   update(id: string, category: Partial<Category>): Observable<Category> {

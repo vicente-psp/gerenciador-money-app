@@ -4,4 +4,5 @@ export interface Category {
   color?: string;
   icon?: string;
   type: 'INCOME' | 'EXPENSE';
+  financeGroupId: string;
 }
